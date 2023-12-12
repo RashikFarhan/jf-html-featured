@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jellyfin Featured Slideshow</title>
+    <style>
+        /* CSS styles for the slideshow elements */
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .slide {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            cursor: pointer;
+            outline: none;
+            display: none;
+        }
+
+        .backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: top left;
+            border-radius: 5px;
+            z-index: 1;
+        }
+
+        .logo {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            max-height: 50px;
+            max-width: 50px;
+            width: auto;
+            z-index: 2;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Container for dynamic slides -->
+<div id="slides-container"></div>
+
+<script>
+// Configuration variables
+const userId = '1ae23bfca31b4f1a997b3e419b5aeb0c'; // Replace with your User ID
+const apiToken = '90edffa779b8400a9554b673b277e65f'; // Replace with your Jellyfin API token
+const slideshowInterval = 5000; // Time in milliseconds between slide changes
+
+function createSlideElement(backdropUrl, logoUrl) {
+    const container = document.getElementById('slides-container');
+    const slideElement = document.createElement('div');
+    slideElement.className = 'slide';
+    container.appendChild(slideElement);
+
+    const backdrop = document.createElement('img');
+    backdrop.className = 'backdrop';
+    backdrop.src = backdropUrl;
+    backdrop.alt = 'Backdrop';
+    slideElement.appendChild(backdrop);
+
+    const logo = document.createElement('img');
+    logo.className = 'logo';
+    logo.src = logoUrl;
+    logo.alt = 'Logo';
+    slideElement.appendChild(logo);
+
+    return slideElement;
+}
+
+function initializeSlideshow() {
+    const slides = document.querySelectorAll('.slide');
+    let currentSlide = 0;
+
+    function showSlide(index) {
+        for (let i = 0; i < slides.length; i++) {
+            slides[i].style.display = 'none';
+        }
+        slides[index].style.display = 'block';
+    }
+
+    function nextSlide() {
+        currentSlide = (currentSlide + 1) % slides.length;
+        showSlide(currentSlide);
+    }
+
+    showSlide(currentSlide);
+    setInterval(nextSlide, slideshowInterval);
+}
+
+function fetchUserFavorites() {
+    const favoritesUrl = `http://192.168.0.110:8096/Users/${userId}/Items?Recursive=True&Filters=IsFavorite&Fields=Id,Overview,Path`;
+
+    fetch(favoritesUrl, {
+        headers: {
+            'X-Emby-Token': apiToken,
+        },
+    })
+        .then(response => response.json())
+        .then(data => {
+            data.Items.forEach(item => {
+                const backdropUrl = `http://192.168.0.110:8096/Items/${item.Id}/Images/Backdrop/0?tag=${Date.now()}`;
+                const logoUrl = `http://192.168.0.110:8096/Items/${item.Id}/Images/Logo/0?tag=${Date.now()}`;
+                createSlideElement(backdropUrl, logoUrl);
+            });
+
+            initializeSlideshow();
+        })
+        .catch(error => {
+            console.error('Error fetching user favorites:', error);
+        });
+}
+
+fetchUserFavorites();
+</script>
+</body>
+</html>
